@@ -1,0 +1,88 @@
+<div class="tea-scope">
+<h2>Time Entry Audit<% if @time_entry_id %> – ##<%= @time_entry_id %><% end %></h2>
+
+<%= form_tag(time_entry_audits_path, method: :get, class: 'filters') do %>
+  <div class="box">
+    <p>
+      <label>Project:</label>
+      <%= text_field_tag :project_id, @proj_param || (@project && (@project.identifier || @project.id)), size: 18, list: 'projects_list' %>
+      <datalist id="projects_list">
+        <% @projects_list.each do |p| %>
+          <option value="<%= p.identifier.presence || p.id %>"><%= p.name %> (#<%= p.id %>)</option>
+        <% end %>
+      </datalist>
+    </p>
+    <p>
+      <label>Time entry ID:</label> <%= text_field_tag :time_entry_id, @time_entry_id, size: 8 %>
+      <label style="margin-left:1em;">From:</label> <%= date_field_tag :from, (@from) %>
+      <label style="margin-left:1em;">To:</label> <%= date_field_tag :to, (@to) %>
+      <label style="margin-left:1em;">
+        <%= check_box_tag :only_changes, '1', params[:only_changes].present? %> Show only changes
+      </label>
+    </p>
+    <p>
+      <label>User (owner):</label> <%= text_field_tag :user_id, @user_id, size: 8, list: 'users_list' %>
+      <datalist id="users_list">
+        <% @users_list.each do |u| %>
+          <option value="<%= u.id %>"><%= u.login %> (<%= u.name %>)</option>
+        <% end %>
+      </datalist>
+      <label style="margin-left:1em;">Actor:</label> <%= text_field_tag :actor_id, @actor_id, size: 8, list: 'users_list' %>
+      <label style="margin-left:1em;">Action:</label>
+      <%= select_tag :what, options_for_select([['any',''],['create','create'],['update','update'],['destroy','destroy']], @action) %>
+      <label style="margin-left:1em;">Activity:</label>
+      <%= select_tag :activity_id, options_for_select([['any','']] + @activities.map{|a| [a.name, a.id]}, @activity_id) %>
+    </p>
+    <p>
+      <%= submit_tag 'Apply', class: 'icon icon-checked' %>
+      <%= link_to 'Clear', time_entry_audits_path, class: 'icon icon-reload', style: 'margin-left:1em;' %>
+      <%= link_to 'Export CSV', url_for(params.permit!.to_h.merge(format: :csv)), class: 'icon icon-export', style: 'margin-left:1em;' %>
+      <%= link_to 'Export XLSX', url_for(params.permit!.to_h.merge(format: :xlsx)), class: 'icon icon-export', style: 'margin-left:0.5em;' %>
+      <%= link_to 'Export JSON', url_for(params.permit!.to_h.merge(download: 'json')), class: 'icon icon-file', style: 'margin-left:0.5em;' %>
+    </p>
+  </div>
+<% end %>
+
+<table class="list">
+  <thead>
+    <tr>
+      <th>When</th><th>Actor</th><th>Action</th><th>Entry</th><th>Project</th>
+      <th>Hours</th><th>Comment</th><th>Date</th><th>Activity</th><th>Issue</th><th>User</th><th>Author</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @audits.each do |a| %>
+      <% project = Project.find_by(id: a.project_id)
+         issue_id = a.issue_id || a.new_issue_id || a.old_issue_id
+         only_changes = params[:only_changes].present?
+         def diff_cell(oldv, newv, only_changes: false, &labelify)
+           changed = (oldv != newv)
+           return ''.html_safe if only_changes && !changed
+           ov = labelify ? labelify.call(oldv) : oldv
+           nv = labelify ? labelify.call(newv) : newv
+           if changed
+             (content_tag(:strong, ov) + ' → '.html_safe + content_tag(:strong, nv)).html_safe
+           else
+             ERB::Util.h(ov || nv).to_s.html_safe
+           end
+         end %>
+      <tr>
+        <td><%= format_time(a.created_at) %></td>
+        <td><%= h(a.actor_login.presence || User.find_by(id: a.actor_id)&.login || a.actor_id) %></td>
+        <td><%= a.action %></td>
+        <td><%= (link_to "##{a.time_entry_id}", time_entry_path(a.time_entry_id) rescue link_to("##{a.time_entry_id}", edit_time_entry_path(a.time_entry_id))) %></td>
+        <td><%= project ? link_to(h(a.project_name.presence || project.name), project_path(project)) : h(a.project_name) %></td>
+        <td><%= diff_cell(a.old_hours, a.new_hours, only_changes: only_changes) %></td>
+        <td><%= diff_cell(a.old_comments, a.new_comments, only_changes: only_changes) %></td>
+        <td><%= diff_cell(a.old_spent_on, a.new_spent_on, only_changes: only_changes) %></td>
+        <td><%= diff_cell(a.old_activity_id, a.new_activity_id, only_changes: only_changes){|id| id && ( (id == a.old_activity_id && a.old_activity_name.presence) || (id == a.new_activity_id && a.new_activity_name.presence) || TimeEntryActivity.find_by(id: id)&.name ) } %></td>
+        <td><%= issue_id ? link_to("##{issue_id}", issue_path(issue_id)) : '' %></td>
+        <td><%= diff_cell(a.old_user_id, a.new_user_id, only_changes: only_changes){|uid| if uid == a.old_user_id; a.old_user_login.presence || (User.find_by(id: uid)&.login) || uid; elsif uid == a.new_user_id; a.new_user_login.presence || (User.find_by(id: uid)&.login) || uid; else; (User.find_by(id: uid)&.login) || uid; end } %></td>
+        <td><%= diff_cell(a.old_author_id, a.new_author_id, only_changes: only_changes){|uid| if uid == a.old_author_id; a.old_author_login.presence || (User.find_by(id: uid)&.login) || uid; elsif uid == a.new_author_id; a.new_author_login.presence || (User.find_by(id: uid)&.login) || uid; else; (User.find_by(id: uid)&.login) || uid; end } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<style>.list td{vertical-align:top}.list td strong{font-weight:700}.filters .info{color:#888;margin-left:.5em}</style>
+</div>

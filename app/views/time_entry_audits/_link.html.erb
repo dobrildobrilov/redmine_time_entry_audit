@@ -1,0 +1,11 @@
+<% if TimeEntryAuditAccess.allowed?(User.current) && @time_entry && @time_entry.persisted? %>
+  <p class="time-entry-audit">
+    <%= link_to 'View time entry history',
+        time_entry_audits_path(time_entry_id: @time_entry.id),
+        class: 'icon icon-history' %>
+    &nbsp;|&nbsp;
+    <%= link_to 'Export CSV',
+        time_entry_audits_path(time_entry_id: @time_entry.id, format: :csv),
+        class: 'icon icon-export' %>
+  </p>
+<% end %>
