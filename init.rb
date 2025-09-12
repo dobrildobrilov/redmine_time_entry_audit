@@ -28,11 +28,16 @@ module TimeEntryAuditAccess
   module_function
   def allowed?(user)
     return false unless user&.logged?
-    ids = Array(Setting.plugin_redmine_time_entry_audit['allowed_admin_ids']).map(&:to_i)
-    return false if ids.empty?
+
+    fresh_install = !::Setting.where(name: 'plugin_redmine_time_entry_audit').exists?
+    return user.admin? if fresh_install
+
+    s = Setting.plugin_redmine_time_entry_audit || {}
+    ids = Array(s['allowed_admin_ids']).map(&:to_i)
     ids.include?(user.id)
   end
 end
+
 
 class TimeEntryAuditHooks < Redmine::Hook::ViewListener
   render_on :view_timelog_edit_form_bottom, partial: 'time_entry_audits/link'

@@ -15,11 +15,13 @@ module RedmineTimeEntryAudit
         css_js = stylesheet_link_tag('time_entry_audit', plugin: 'redmine_time_entry_audit') +
                  javascript_include_tag('time_entry_audit', plugin: 'redmine_time_entry_audit')
       end
-
       on_plugins_index = (ctrl.controller_name == 'admin' && ctrl.action_name == 'plugins')
-      if on_plugins_index && !TimeEntryAuditAccess.allowed?(User.current)
-        css_hide = 'a[href*="/settings/plugin/redmine_time_entry_audit"]{display:none !important;}'
-        css_js << content_tag(:style, css_hide.html_safe)
+      if on_plugins_index
+        fresh_install = !::Setting.where(name: 'plugin_redmine_time_entry_audit').exists?
+        if !fresh_install && !TimeEntryAuditAccess.allowed?(User.current)
+          css_hide = 'a[href*="/settings/plugin/redmine_time_entry_audit"]{display:none !important;}'
+          css_js << content_tag(:style, css_hide.html_safe)
+        end
       end
 
       css_js.html_safe

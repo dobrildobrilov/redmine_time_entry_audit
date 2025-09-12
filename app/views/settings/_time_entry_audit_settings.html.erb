@@ -1,10 +1,10 @@
 <%
-  @settings ||= Setting.plugin_redmine_time_entry_audit
-  raw_ids      = Array(@settings['allowed_admin_ids'])
-  allowed_ids  = raw_ids.map(&:to_i)
-  list_defined = @settings.key?('allowed_admin_ids')
-  current_id   = User.current.id
-  allowed      = list_defined ? allowed_ids.include?(current_id) : true
+  fresh_install = !Setting.where(name: 'plugin_redmine_time_entry_audit').exists?
+  @settings    ||= Setting.plugin_redmine_time_entry_audit
+  raw_ids        = Array(@settings['allowed_admin_ids'])
+  allowed_ids    = raw_ids.map(&:to_i)
+  current_id     = User.current.id
+  allowed = fresh_install ? User.current.admin? : allowed_ids.include?(current_id)
 %>
 
 <div class="tea-scope">
