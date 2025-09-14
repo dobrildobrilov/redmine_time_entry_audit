@@ -7,7 +7,7 @@ Redmine::Plugin.register :redmine_time_entry_audit do
   author      'Dobril Dobrilov'
   url 'https://github.com/dobrildobrilov/redmine_time_entry_audit'
   description 'Audit trail for TimeEntry with filters and exports'
-  version     '1.0.0'
+  version     '1.0.1'
 
   permission :view_time_entry_audits, { time_entry_audits: [:index, :counts] }, read: true
 
