@@ -70,7 +70,7 @@
         <td><%= format_time(a.created_at) %></td>
         <td><%= h(a.actor_login.presence || User.find_by(id: a.actor_id)&.login || a.actor_id) %></td>
         <td><%= a.action %></td>
-        <td><%= (link_to "##{a.time_entry_id}", time_entry_path(a.time_entry_id) rescue link_to("##{a.time_entry_id}", edit_time_entry_path(a.time_entry_id))) %></td>
+        <td><%= link_to "##{a.time_entry_id}", edit_time_entry_path(a.time_entry_id), title: "Edit time entry ##{a.time_entry_id}" %></td>
         <td><%= project ? link_to(h(a.project_name.presence || project.name), project_path(project)) : h(a.project_name) %></td>
         <td><%= diff_cell(a.old_hours, a.new_hours, only_changes: only_changes) %></td>
         <td><%= diff_cell(a.old_comments, a.new_comments, only_changes: only_changes) %></td>
